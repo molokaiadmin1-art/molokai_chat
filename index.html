@@ -7,28 +7,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Community Hub - Fully Operational</title>
     <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --admin-green: #27ae60; --sidebar-dark: #2c3e50; --aqi-good: #2ecc71; }
         body { font-family: system-ui, sans-serif; background: #f0f2f5; display: flex; margin: 0; height: 100vh; overflow: hidden; }
+        
+        /* Local Gate Styles */
         #local-gate { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--sidebar-dark); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; text-align: center; padding: 20px; box-sizing: border-box; }
         .gate-box { background: #34495e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-width: 450px; width: 100%; }
         .gate-input { padding: 15px; border-radius: 25px; border: none; width: 85%; margin: 20px 0; font-size: 1.1rem; text-align: center; outline: none; }
         .gate-btn { background: var(--admin-green); color: white; padding: 12px 35px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; }
+        
+        /* Sidebar & Navigation */
         .sidebar { width: 280px; background: var(--sidebar-dark); color: white; padding: 20px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; overflow-y: auto; transition: transform 0.3s ease; z-index: 1000; }
         .nav-btn { background: none; border: none; color: #bdc3c7; text-align: left; padding: 12px; cursor: pointer; border-radius: 6px; width: 100%; }
         .nav-btn.active { background: var(--admin-green); color: white; }
+        
+        /* Hamburger Button - Only visible on small screens */
+        #mobile-menu-btn { display: none; position: fixed; top: 10px; left: 10px; z-index: 1001; background: var(--admin-green); color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; border: none; }
+
+        /* AQI Widget */
         .aqi-widget { background: #34495e; padding: 12px; border-radius: 8px; margin-top: auto; border-left: 4px solid var(--aqi-good); }
         .sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }
         .aqi-value { font-size: 1.1rem; font-weight: bold; color: var(--aqi-good); }
+        
+        /* Main Chat Area */
         .main-content { flex-grow: 1; display: flex; flex-direction: column; background: white; height: 100vh; position: relative; min-width: 0; }
-        .banner { padding: 15px 25px; border-bottom: 3px solid var(--admin-green); background: #fff; flex-shrink: 0; }
+        .banner { padding: 15px 25px; border-bottom: 3px solid var(--admin-green); background: #fff; flex-shrink: 0; display: flex; align-items: center; }
         .history { flex-grow: 1; padding: 15px; overflow-y: auto; background: #fafafa; }
         .comment { background: white; border: 1px solid #ddd; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        
+        /* Input Area */
         .reply-area { padding: 15px; border-top: 1px solid #ddd; background: white; }
         .name-bar { background: #fdf9e1; padding: 8px 15px; border-radius: 20px; margin-bottom: 10px; border: 1px solid #f1c40f; }
         .name-input { border: none; background: transparent; font-weight: bold; outline: none; width: 100%; }
         .text-input { width: 100%; padding: 12px; border-radius: 15px; border: 1px solid #ccc; font-family: inherit; resize: none; box-sizing: border-box; }
         .post-btn { background: var(--admin-green); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; margin-top: 10px; float: right; }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: 0; top: 0; height: 100%; transform: translateX(-100%); width: 250px; }
+            .sidebar.active { transform: translateX(0); }
+            #mobile-menu-btn { display: block; }
+            .banner h1 { margin-left: 50px !important; }
+        }
     </style>
 </head>
 <body>
@@ -44,15 +66,17 @@
     </div>
 </div>
 
+<button id="mobile-menu-btn" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
 <div class="sidebar" id="sidebar">
     <h2 style="margin-bottom: 15px;">Papa Hoʻolaha</h2>
     <button class="nav-btn active" id="home-btn" onclick="showHome()"><span>🏠 Kaʻu mau Kūkākūkā</span></button>
-    <div id="nav-list">
-        </div>
+    <div id="nav-list"></div>
     <div class="aqi-widget">
         <div style="font-size: 0.7rem; color: #bdc3c7;">📍 LOCAL SENSORS</div>
-        <div class="sensor-grid" id="sensor-display">
-            </div>
+        <div class="sensor-grid" id="sensor-display"></div>
     </div>
 </div>
 
@@ -80,6 +104,11 @@
     const WEB_APP_URL = (typeof CONFIG !== 'undefined') ? CONFIG.SHEET_URL : "";
     let forumData = {};
     let currentTopic = "home";
+
+    // NEW: Toggle Sidebar function for mobile
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('active');
+    }
 
     function autoResize(textarea) {
         textarea.style.height = 'auto';
@@ -127,6 +156,8 @@
             div.className = 'comment'; div.innerHTML = msg;
             feed.appendChild(div);
         });
+        // Close sidebar on mobile after clicking
+        if (window.innerWidth <= 768) toggleSidebar();
     }
 
     function showHome() {
@@ -134,6 +165,8 @@
         document.getElementById('topic-title').innerText = "Kaʻu mau Kūkākūkā";
         document.getElementById('home-view').style.display = 'block';
         document.getElementById('topic-view').style.display = 'none';
+        // Close sidebar on mobile after clicking
+        if (window.innerWidth <= 768) toggleSidebar();
     }
 
     async function postMessage() {
@@ -147,6 +180,7 @@
         try {
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({name, message: input.value, forum}) });
             input.value = "";
+            input.style.height = 'auto'; // Reset textarea height
         } catch (e) { console.error("Post failed", e); }
     }
 
