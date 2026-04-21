@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community Hub - Fully Operational</title>
+    <title>Community Hub - Threaded Edition</title>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -24,7 +24,6 @@
         .nav-btn { background: none; border: none; color: #bdc3c7; text-align: left; padding: 12px; cursor: pointer; border-radius: 6px; width: 100%; }
         .nav-btn.active { background: var(--admin-green); color: white; }
         
-        /* Hamburger Button - Only visible on small screens */
         #mobile-menu-btn { display: none; position: fixed; top: 10px; left: 10px; z-index: 1001; background: var(--admin-green); color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; border: none; }
 
         /* AQI Widget */
@@ -36,16 +35,20 @@
         .main-content { flex-grow: 1; display: flex; flex-direction: column; background: white; height: 100vh; position: relative; min-width: 0; }
         .banner { padding: 15px 25px; border-bottom: 3px solid var(--admin-green); background: #fff; flex-shrink: 0; display: flex; align-items: center; }
         .history { flex-grow: 1; padding: 15px; overflow-y: auto; background: #fafafa; }
-        .comment { background: white; border: 1px solid #ddd; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        
+        /* Threaded Comment Styles */
+        .comment { background: white; border: 1px solid #ddd; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); position: relative; }
+        .reply-comment { margin-left: 35px; border-left: 3px solid var(--admin-green); background: #f9f9f9; }
+        .reply-btn { font-size: 0.75rem; color: var(--admin-green); background: none; border: none; cursor: pointer; padding: 5px 0; font-weight: bold; }
         
         /* Input Area */
         .reply-area { padding: 15px; border-top: 1px solid #ddd; background: white; }
+        .reply-indicator { background: #e8f5e9; padding: 5px 15px; font-size: 0.8rem; color: #2e7d32; display: none; border-radius: 10px 10px 0 0; border: 1px solid #c8e6c9; border-bottom: none; }
         .name-bar { background: #fdf9e1; padding: 8px 15px; border-radius: 20px; margin-bottom: 10px; border: 1px solid #f1c40f; }
         .name-input { border: none; background: transparent; font-weight: bold; outline: none; width: 100%; }
         .text-input { width: 100%; padding: 12px; border-radius: 15px; border: 1px solid #ccc; font-family: inherit; resize: none; box-sizing: border-box; }
         .post-btn { background: var(--admin-green); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; margin-top: 10px; float: right; }
 
-        /* Responsive Breakpoints */
         @media (max-width: 768px) {
             .sidebar { position: fixed; left: 0; top: 0; height: 100%; transform: translateX(-100%); width: 250px; }
             .sidebar.active { transform: translateX(0); }
@@ -67,9 +70,7 @@
     </div>
 </div>
 
-<button id="mobile-menu-btn" onclick="toggleSidebar()">
-    <i class="fas fa-bars"></i>
-</button>
+<button id="mobile-menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
 
 <div class="sidebar" id="sidebar">
     <h2 style="margin-bottom: 15px;">Papa Hoʻolaha</h2>
@@ -82,18 +83,13 @@
 </div>
 
 <div class="main-content">
-    <div class="banner">
-        <h1 id="topic-title" style="font-size: 1.1rem; margin:0;">Kaʻu mau Kūkākūkā</h1>
-    </div>
+    <div class="banner"><h1 id="topic-title" style="font-size: 1.1rem; margin:0;">Kaʻu mau Kūkākūkā</h1></div>
     <div class="history" id="chat-history">
-        <div id="home-view">
-            <div id="personal-feed">
-                <div class="comment"><b>Admin:</b> Loading your conversations...</div>
-            </div>
-        </div>
+        <div id="home-view"><div id="personal-feed"><div class="comment">Loading conversations...</div></div></div>
         <div id="topic-view" style="display:none;"><div id="topic-feed"></div></div>
     </div>
     <div class="reply-area">
+        <div id="reply-to-label" class="reply-indicator">Replying to... <span onclick="cancelReply()" style="float:right; cursor:pointer;">✕</span></div>
         <div class="name-bar"><input type="text" id="user-name" class="name-input" placeholder="Your name..."></div>
         <select id="forum-picker" style="width:100%; margin-bottom:8px; padding:8px; border-radius:8px; border:1px solid #ccc;"></select>
         <textarea id="user-input" class="text-input" rows="1" placeholder="Kākau i memo..." oninput="autoResize(this)"></textarea>
@@ -103,32 +99,23 @@
 
 <script>
     const WEB_APP_URL = (typeof CONFIG !== 'undefined') ? CONFIG.SHEET_URL : "";
-    let forumData = {};
+    let forumData = {}; // Now stores objects: { id, user, text, parentId, postId }
     let currentTopic = "home";
+    let activeParentId = null;
 
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('active');
-    }
-
-    function autoResize(textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = textarea.scrollHeight + 'px';
-    }
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+    function autoResize(textarea) { textarea.style.height = 'auto'; textarea.style.height = textarea.scrollHeight + 'px'; }
 
     async function syncWithSheet() {
-        // Memory Check: Skip gate if already answered and restore name
-        if (localStorage.getItem('gate_pass') === 'true') {
-            document.getElementById('local-gate').style.display = 'none';
-        }
-        if (localStorage.getItem('user_name')) {
-            document.getElementById('user-name').value = localStorage.getItem('user_name');
-        }
+        if (localStorage.getItem('gate_pass') === 'true') document.getElementById('local-gate').style.display = 'none';
+        if (localStorage.getItem('user_name')) document.getElementById('user-name').value = localStorage.getItem('user_name');
 
         if (!WEB_APP_URL) return;
         try {
             const response = await fetch(WEB_APP_URL);
             const data = await response.json();
             
+            // Handle Sidebar Forum List
             if (data.settings && data.settings.forum_list) {
                 const forums = data.settings.forum_list.split(',');
                 const navList = document.getElementById('nav-list');
@@ -141,9 +128,8 @@
                     picker.innerHTML += `<option value="${id}">${name}</option>`;
                 });
             }
+
             forumData = data.messages || {};
-            
-            // Refresh views with the new data
             if (currentTopic === "home") showHome();
             else loadTopic(currentTopic, document.getElementById('topic-title').innerText);
 
@@ -164,16 +150,39 @@
         document.getElementById('topic-view').style.display = 'block';
         const feed = document.getElementById('topic-feed');
         feed.innerHTML = "";
-        if(forumData[id]) {
-            forumData[id].forEach(msg => {
-                const div = document.createElement('div');
-                div.className = 'comment'; div.innerHTML = msg;
-                feed.appendChild(div);
-            });
-        } else {
-            feed.innerHTML = "<div class='comment'>No messages yet.</div>";
-        }
+
+        const messages = forumData[id] || [];
+        // Sort: Parents first, then their replies
+        const parents = messages.filter(m => !m.parentId);
+        parents.forEach(p => {
+            renderMessage(p, feed, false);
+            const replies = messages.filter(r => r.parentId === p.postId);
+            replies.forEach(r => renderMessage(r, feed, true));
+        });
+        if (messages.length === 0) feed.innerHTML = "<div class='comment'>No messages yet.</div>";
         if (window.innerWidth <= 768) toggleSidebar();
+    }
+
+    function renderMessage(msg, container, isReply) {
+        const div = document.createElement('div');
+        div.className = `comment ${isReply ? 'reply-comment' : ''}`;
+        div.innerHTML = `
+            <b>${msg.user}:</b> ${msg.text}
+            <br><button class="reply-btn" onclick="setReply('${msg.postId}', '${msg.user}')"><i class="fas fa-reply"></i> Reply</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function setReply(postId, userName) {
+        activeParentId = postId;
+        document.getElementById('reply-to-label').style.display = 'block';
+        document.getElementById('reply-to-label').innerHTML = `Replying to <b>${userName}</b> <span onclick="cancelReply()" style="float:right; cursor:pointer;">✕</span>`;
+        document.getElementById('user-input').focus();
+    }
+
+    function cancelReply() {
+        activeParentId = null;
+        document.getElementById('reply-to-label').style.display = 'none';
     }
 
     function showHome() {
@@ -182,59 +191,35 @@
         document.getElementById('topic-title').innerText = "Kaʻu mau Kūkākūkā";
         document.getElementById('home-view').style.display = 'block';
         document.getElementById('topic-view').style.display = 'none';
-        
         const personalFeed = document.getElementById('personal-feed');
         personalFeed.innerHTML = "";
 
-        // Filter all forum messages for the user's name
-        let found = false;
+        let threadsFound = [];
         Object.keys(forumData).forEach(forumId => {
-            forumData[forumId].forEach(msgHTML => {
-                if (msgHTML.includes(`<b>${myName}:</b>`)) {
-                    const div = document.createElement('div');
-                    div.className = 'comment';
-                    div.innerHTML = `<small style="color:gray;">[${forumId}]</small><br>${msgHTML}`;
-                    personalFeed.prepend(div);
-                    found = true;
+            forumData[forumId].forEach(msg => {
+                if (msg.user === myName || (msg.parentId && threadsFound.includes(msg.parentId))) {
+                    renderMessage(msg, personalFeed, msg.parentId);
+                    if (!threadsFound.includes(msg.postId)) threadsFound.push(msg.postId);
                 }
             });
         });
-
-        if (!found) {
-            personalFeed.innerHTML = "<div class='comment'>No conversations found yet. Try posting in a forum!</div>";
-        }
-        
-        if (window.innerWidth <= 768) toggleSidebar();
+        if (personalFeed.innerHTML === "") personalFeed.innerHTML = "<div class='comment'>No conversations yet.</div>";
     }
 
     async function postMessage() {
         const name = document.getElementById('user-name').value;
         const input = document.getElementById('user-input');
         const forum = document.getElementById('forum-picker').value;
-        const forumName = document.getElementById('forum-picker').options[document.getElementById('forum-picker').selectedIndex].text;
-        
         if (!name || !input.value.trim()) return;
 
-        // Save name for next time
         localStorage.setItem('user_name', name);
-
-        // Instant UI Update: Add to screen immediately
-        const msgHTML = `<b>${name}:</b> ${input.value}`;
-        const div = document.createElement('div');
-        div.className = 'comment'; div.innerHTML = msgHTML;
-        
-        if (currentTopic === 'home') {
-            const homeDiv = div.cloneNode(true);
-            homeDiv.innerHTML = `<small style="color:gray;">[${forumName}]</small><br>${msgHTML}`;
-            document.getElementById('personal-feed').prepend(homeDiv);
-        } else {
-            document.getElementById('topic-feed').prepend(div);
-        }
+        const payload = { name, message: input.value, forum, parentId: activeParentId };
 
         try {
-            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({name, message: input.value, forum}) });
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
             input.value = "";
-            input.style.height = 'auto';
+            cancelReply();
+            syncWithSheet(); // Refresh to show the new threaded message
         } catch (e) { console.error("Post failed", e); }
     }
 
@@ -243,9 +228,7 @@
         if (val.includes("friendly") || val.includes("isle")) {
             localStorage.setItem('gate_pass', 'true');
             document.getElementById('local-gate').style.display = 'none';
-        } else {
-            document.getElementById('gate-error').style.display = 'block';
-        }
+        } else { document.getElementById('gate-error').style.display = 'block'; }
     }
 
     document.addEventListener('DOMContentLoaded', syncWithSheet);
