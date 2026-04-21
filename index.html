@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -87,7 +88,7 @@
     <div class="history" id="chat-history">
         <div id="home-view">
             <div id="personal-feed">
-                <div class="comment"><b>Admin:</b> Aloha! Your feed will update once you connect to your Google Sheet.</div>
+                <div class="comment"><b>Admin:</b> Loading your conversations...</div>
             </div>
         </div>
         <div id="topic-view" style="display:none;"><div id="topic-feed"></div></div>
@@ -105,7 +106,6 @@
     let forumData = {};
     let currentTopic = "home";
 
-    // NEW: Toggle Sidebar function for mobile
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('active');
     }
@@ -116,12 +116,20 @@
     }
 
     async function syncWithSheet() {
+        // Memory Check: Skip gate if already answered and restore name
+        if (localStorage.getItem('gate_pass') === 'true') {
+            document.getElementById('local-gate').style.display = 'none';
+        }
+        if (localStorage.getItem('user_name')) {
+            document.getElementById('user-name').value = localStorage.getItem('user_name');
+        }
+
         if (!WEB_APP_URL) return;
         try {
             const response = await fetch(WEB_APP_URL);
             const data = await response.json();
             
-            if (data.settings.forum_list) {
+            if (data.settings && data.settings.forum_list) {
                 const forums = data.settings.forum_list.split(',');
                 const navList = document.getElementById('nav-list');
                 const picker = document.getElementById('forum-picker');
@@ -134,6 +142,11 @@
                 });
             }
             forumData = data.messages || {};
+            
+            // Refresh views with the new data
+            if (currentTopic === "home") showHome();
+            else loadTopic(currentTopic, document.getElementById('topic-title').innerText);
+
             if (data.sensors) {
                 const grid = document.getElementById('sensor-display');
                 grid.innerHTML = '';
@@ -150,22 +163,47 @@
         document.getElementById('home-view').style.display = 'none';
         document.getElementById('topic-view').style.display = 'block';
         const feed = document.getElementById('topic-feed');
-        feed.innerHTML = forumData[id] ? "" : "<div class='comment'>No messages yet.</div>";
-        if(forumData[id]) forumData[id].forEach(msg => {
-            const div = document.createElement('div');
-            div.className = 'comment'; div.innerHTML = msg;
-            feed.appendChild(div);
-        });
-        // Close sidebar on mobile after clicking
+        feed.innerHTML = "";
+        if(forumData[id]) {
+            forumData[id].forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'comment'; div.innerHTML = msg;
+                feed.appendChild(div);
+            });
+        } else {
+            feed.innerHTML = "<div class='comment'>No messages yet.</div>";
+        }
         if (window.innerWidth <= 768) toggleSidebar();
     }
 
     function showHome() {
         currentTopic = "home";
+        const myName = document.getElementById('user-name').value;
         document.getElementById('topic-title').innerText = "Kaʻu mau Kūkākūkā";
         document.getElementById('home-view').style.display = 'block';
         document.getElementById('topic-view').style.display = 'none';
-        // Close sidebar on mobile after clicking
+        
+        const personalFeed = document.getElementById('personal-feed');
+        personalFeed.innerHTML = "";
+
+        // Filter all forum messages for the user's name
+        let found = false;
+        Object.keys(forumData).forEach(forumId => {
+            forumData[forumId].forEach(msgHTML => {
+                if (msgHTML.includes(`<b>${myName}:</b>`)) {
+                    const div = document.createElement('div');
+                    div.className = 'comment';
+                    div.innerHTML = `<small style="color:gray;">[${forumId}]</small><br>${msgHTML}`;
+                    personalFeed.prepend(div);
+                    found = true;
+                }
+            });
+        });
+
+        if (!found) {
+            personalFeed.innerHTML = "<div class='comment'>No conversations found yet. Try posting in a forum!</div>";
+        }
+        
         if (window.innerWidth <= 768) toggleSidebar();
     }
 
@@ -173,20 +211,37 @@
         const name = document.getElementById('user-name').value;
         const input = document.getElementById('user-input');
         const forum = document.getElementById('forum-picker').value;
+        const forumName = document.getElementById('forum-picker').options[document.getElementById('forum-picker').selectedIndex].text;
+        
         if (!name || !input.value.trim()) return;
+
+        // Save name for next time
+        localStorage.setItem('user_name', name);
+
+        // Instant UI Update: Add to screen immediately
+        const msgHTML = `<b>${name}:</b> ${input.value}`;
         const div = document.createElement('div');
-        div.className = 'comment'; div.innerHTML = `<b>${name}:</b> ${input.value}`;
-        document.getElementById('personal-feed').prepend(div);
+        div.className = 'comment'; div.innerHTML = msgHTML;
+        
+        if (currentTopic === 'home') {
+            const homeDiv = div.cloneNode(true);
+            homeDiv.innerHTML = `<small style="color:gray;">[${forumName}]</small><br>${msgHTML}`;
+            document.getElementById('personal-feed').prepend(homeDiv);
+        } else {
+            document.getElementById('topic-feed').prepend(div);
+        }
+
         try {
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({name, message: input.value, forum}) });
             input.value = "";
-            input.style.height = 'auto'; // Reset textarea height
+            input.style.height = 'auto';
         } catch (e) { console.error("Post failed", e); }
     }
 
     function checkLocalGate() {
         const val = document.getElementById('gate-answer').value.toLowerCase();
         if (val.includes("friendly") || val.includes("isle")) {
+            localStorage.setItem('gate_pass', 'true');
             document.getElementById('local-gate').style.display = 'none';
         } else {
             document.getElementById('gate-error').style.display = 'block';
