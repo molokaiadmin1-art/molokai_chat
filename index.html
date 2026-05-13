@@ -1,151 +1,235 @@
 
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Molokai Hub</title>
+    <title>Community Hub - Threaded Edition</title>
     <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: sans-serif; display: flex; margin: 0; height: 100vh; }
-        #sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px; display: flex; flex-direction: column; }
-        #main { flex: 1; padding: 20px; overflow-y: auto; background: #ecf0f1; }
-        .msg { background: white; padding: 10px; margin: 10px 0; border-radius: 5px; border-left: 5px solid #27ae60; }
-        .reply { margin-left: 30px; border-left: 5px solid #3498db; }
-        button { cursor: pointer; background: #27ae60; color: white; border: none; padding: 5px 10px; border-radius: 3px; }
-        .reply-btn { background: none; color: #3498db; text-decoration: underline; padding: 0; margin-top: 5px; }
+        :root { --admin-green: #27ae60; --sidebar-dark: #2c3e50; --aqi-good: #2ecc71; }
+        body { font-family: system-ui, sans-serif; background: #f0f2f5; display: flex; margin: 0; height: 100vh; overflow: hidden; }
+        
+        /* Local Gate Styles */
+        #local-gate { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--sidebar-dark); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; text-align: center; padding: 20px; box-sizing: border-box; }
+        .gate-box { background: #34495e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-width: 450px; width: 100%; }
+        .gate-input { padding: 15px; border-radius: 25px; border: none; width: 85%; margin: 20px 0; font-size: 1.1rem; text-align: center; outline: none; }
+        .gate-btn { background: var(--admin-green); color: white; padding: 12px 35px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; }
+        
+        /* Sidebar & Navigation */
+        .sidebar { width: 280px; background: var(--sidebar-dark); color: white; padding: 20px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; overflow-y: auto; transition: transform 0.3s ease; z-index: 1000; }
+        .nav-btn { background: none; border: none; color: #bdc3c7; text-align: left; padding: 12px; cursor: pointer; border-radius: 6px; width: 100%; }
+        .nav-btn.active { background: var(--admin-green); color: white; }
+        
+        #mobile-menu-btn { display: none; position: fixed; top: 10px; left: 10px; z-index: 1001; background: var(--admin-green); color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; border: none; }
+
+        /* AQI Widget */
+        .aqi-widget { background: #34495e; padding: 12px; border-radius: 8px; margin-top: auto; border-left: 4px solid var(--aqi-good); }
+        .sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }
+        .aqi-value { font-size: 1.1rem; font-weight: bold; color: var(--aqi-good); }
+        
+        /* Main Chat Area */
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; background: white; height: 100vh; position: relative; min-width: 0; }
+        .banner { padding: 15px 25px; border-bottom: 3px solid var(--admin-green); background: #fff; flex-shrink: 0; display: flex; align-items: center; }
+        .history { flex-grow: 1; padding: 15px; overflow-y: auto; background: #fafafa; }
+        
+        /* Threaded Comment Styles */
+        .comment { background: white; border: 1px solid #ddd; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); position: relative; }
+        .reply-comment { margin-left: 35px; border-left: 3px solid var(--admin-green); background: #f9f9f9; }
+        .reply-btn { font-size: 0.75rem; color: var(--admin-green); background: none; border: none; cursor: pointer; padding: 5px 0; font-weight: bold; }
+        
+        /* Input Area */
+        .reply-area { padding: 15px; border-top: 1px solid #ddd; background: white; }
+        .reply-indicator { background: #e8f5e9; padding: 5px 15px; font-size: 0.8rem; color: #2e7d32; display: none; border-radius: 10px 10px 0 0; border: 1px solid #c8e6c9; border-bottom: none; }
+        .name-bar { background: #fdf9e1; padding: 8px 15px; border-radius: 20px; margin-bottom: 10px; border: 1px solid #f1c40f; }
+        .name-input { border: none; background: transparent; font-weight: bold; outline: none; width: 100%; }
+        .text-input { width: 100%; padding: 12px; border-radius: 15px; border: 1px solid #ccc; font-family: inherit; resize: none; box-sizing: border-box; }
+        .post-btn { background: var(--admin-green); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; margin-top: 10px; float: right; }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; left: 0; top: 0; height: 100%; transform: translateX(-100%); width: 250px; }
+            .sidebar.active { transform: translateX(0); }
+            #mobile-menu-btn { display: block; }
+            .banner h1 { margin-left: 50px !important; }
+        }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
-    <h2 id="title">Loading...</h2>
-    <div id="forums"></div>
-    <button onclick="showHome()" style="margin-top:20px; background:#34495e;">My Conversations</button>
+<div id="local-gate">
+    <div class="gate-box">
+        <h2>E komo mai!</h2>
+        <p>What is the nickname of Molokaʻi?</p>
+        <input type="text" id="gate-answer" class="gate-input" placeholder="Kākau i ka pane...">
+        <br>
+        <button class="gate-btn" onclick="checkLocalGate()">Check Answer</button>
+        <p id="gate-error" style="color: #e74c3c; display: none;">Hewa! (Friendly Isle)</p>
+    </div>
 </div>
 
-<div id="main">
-    <h3 id="view-title">Select a Forum</h3>
-    <div id="content"></div>
-    <hr>
-    <div id="input-area">
-        <p id="reply-to-text" style="display:none; color:#3498db; font-size:0.8em;"></p>
-        <input type="text" id="user-name" placeholder="Your Name"><br><br>
-        <textarea id="user-msg" placeholder="Message..." style="width:90%"></textarea><br>
-        <button onclick="sendMsg()">Send Message</button>
-        <button onclick="cancelReply()" id="cancel-btn" style="display:none; background:#e74c3c;">Cancel Reply</button>
+<button id="mobile-menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+
+<div class="sidebar" id="sidebar">
+    <h2 style="margin-bottom: 15px;">Papa Hoʻolaha</h2>
+    <button class="nav-btn active" id="home-btn" onclick="showHome()"><span>🏠 Kaʻu mau Kūkākūkā</span></button>
+    <div id="nav-list"></div>
+    <div class="aqi-widget">
+        <div style="font-size: 0.7rem; color: #bdc3c7;">📍 LOCAL SENSORS</div>
+        <div class="sensor-grid" id="sensor-display"></div>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="banner"><h1 id="topic-title" style="font-size: 1.1rem; margin:0;">Kaʻu mau Kūkākūkā</h1></div>
+    <div class="history" id="chat-history">
+        <div id="home-view"><div id="personal-feed"><div class="comment">Loading conversations...</div></div></div>
+        <div id="topic-view" style="display:none;"><div id="topic-feed"></div></div>
+    </div>
+    <div class="reply-area">
+        <div id="reply-to-label" class="reply-indicator">Replying to... <span onclick="cancelReply()" style="float:right; cursor:pointer;">✕</span></div>
+        <div class="name-bar"><input type="text" id="user-name" class="name-input" placeholder="Your name..."></div>
+        <select id="forum-picker" style="width:100%; margin-bottom:8px; padding:8px; border-radius:8px; border:1px solid #ccc;"></select>
+        <textarea id="user-input" class="text-input" rows="1" placeholder="Kākau i memo..." oninput="autoResize(this)"></textarea>
+        <button class="post-btn" onclick="postMessage()">➤</button>
     </div>
 </div>
 
 <script>
-    let db = {};
-    let currentForum = "";
-    let activeParentId = ""; // Matches the lowercase 'parentId' in your data
+    const WEB_APP_URL = (typeof CONFIG !== 'undefined') ? CONFIG.SHEET_URL : "";
+    let forumData = {}; // Now stores objects: { id, user, text, parentId, postId }
+    let currentTopic = "home";
+    let activeParentId = null;
 
-    async function loadData() {
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+    function autoResize(textarea) { textarea.style.height = 'auto'; textarea.style.height = textarea.scrollHeight + 'px'; }
+
+    async function syncWithSheet() {
+        if (localStorage.getItem('gate_pass') === 'true') document.getElementById('local-gate').style.display = 'none';
+        if (localStorage.getItem('user_name')) document.getElementById('user-name').value = localStorage.getItem('user_name');
+
+        if (!WEB_APP_URL) return;
         try {
-            const r = await fetch(WEB_APP_URL);
-            const data = await r.json();
-            db = data;
-
-            // Set Title from Settings
-            document.getElementById('title').innerText = data.settings.hub_title || "Molokai Hub";
+            const response = await fetch(WEB_APP_URL);
+            const data = await response.json();
             
-            // Build Forum Buttons
-            const forumDiv = document.getElementById('forums');
-            forumDiv.innerHTML = "";
-            const list = data.settings.forum_list.split(',');
-            list.forEach(f => {
-                const b = document.createElement('button');
-                b.innerText = f.trim();
-                b.style.display = "block";
-                b.style.width = "100%";
-                b.style.marginBottom = "5px";
-                b.onclick = () => showForum(f.trim());
-                forumDiv.appendChild(b);
-            });
+            // Handle Sidebar Forum List
+            if (data.settings && data.settings.forum_list) {
+                const forums = data.settings.forum_list.split(',');
+                const navList = document.getElementById('nav-list');
+                const picker = document.getElementById('forum-picker');
+                navList.innerHTML = ''; picker.innerHTML = '';
+                forums.forEach(f => {
+                    const name = f.trim();
+                    const id = name.toLowerCase().replace(/\s+/g, '_');
+                    navList.innerHTML += `<button class="nav-btn" onclick="loadTopic('${id}', '${name}')">${name}</button>`;
+                    picker.innerHTML += `<option value="${id}">${name}</option>`;
+                });
+            }
 
-            if(currentForum) showForum(currentForum);
-        } catch (e) { console.error("Error loading data", e); }
+            forumData = data.messages || {};
+            if (currentTopic === "home") showHome();
+            else loadTopic(currentTopic, document.getElementById('topic-title').innerText);
+
+            if (data.sensors) {
+                const grid = document.getElementById('sensor-display');
+                grid.innerHTML = '';
+                data.sensors.forEach(s => {
+                    grid.innerHTML += `<div><div style="font-size: 0.6rem;">${s.name}</div><div class="aqi-value">${s.value}</div></div>`;
+                });
+            }
+        } catch (e) { console.error("Sync Error:", e); }
     }
 
-    function showForum(f) {
-        currentForum = f;
-        document.getElementById('view-title').innerText = "Forum: " + f;
-        const cont = document.getElementById('content');
-        cont.innerHTML = "";
-        
-        const msgs = db.messages[f] || [];
-        
-        // Find top-level messages (no parentId)
-        const parents = msgs.filter(m => !m.parentId);
+    function loadTopic(id, displayName) {
+        currentTopic = id;
+        document.getElementById('topic-title').innerText = displayName;
+        document.getElementById('home-view').style.display = 'none';
+        document.getElementById('topic-view').style.display = 'block';
+        const feed = document.getElementById('topic-feed');
+        feed.innerHTML = "";
+
+        const messages = forumData[id] || [];
+        // Sort: Parents first, then their replies
+        const parents = messages.filter(m => !m.parentId);
         parents.forEach(p => {
-            render(p, cont, false);
-            // Find replies to this parent
-            msgs.filter(r => r.parentId === p.postId).forEach(reply => {
-                render(reply, cont, true);
-            });
+            renderMessage(p, feed, false);
+            const replies = messages.filter(r => r.parentId === p.postId);
+            replies.forEach(r => renderMessage(r, feed, true));
         });
+        if (messages.length === 0) feed.innerHTML = "<div class='comment'>No messages yet.</div>";
+        if (window.innerWidth <= 768) toggleSidebar();
     }
 
-    function render(m, area, isReply) {
-        const d = document.createElement('div');
-        d.className = isReply ? "msg reply" : "msg";
-        d.innerHTML = `<b>${m.user}</b>: ${m.text}<br>`;
-        
-        if(!isReply) {
-            const btn = document.createElement('button');
-            btn.className = "reply-btn";
-            btn.innerText = "Reply";
-            btn.onclick = () => {
-                activeParentId = m.postId;
-                document.getElementById('reply-to-text').innerText = "Replying to " + m.user;
-                document.getElementById('reply-to-text').style.display = "block";
-                document.getElementById('cancel-btn').style.display = "inline";
-                document.getElementById('user-msg').focus();
-            };
-            d.appendChild(btn);
-        }
-        area.appendChild(d);
+    function renderMessage(msg, container, isReply) {
+        const div = document.createElement('div');
+        div.className = `comment ${isReply ? 'reply-comment' : ''}`;
+        div.innerHTML = `
+            <b>${msg.user}:</b> ${msg.text}
+            <br><button class="reply-btn" onclick="setReply('${msg.postId}', '${msg.user}')"><i class="fas fa-reply"></i> Reply</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function setReply(postId, userName) {
+        activeParentId = postId;
+        document.getElementById('reply-to-label').style.display = 'block';
+        document.getElementById('reply-to-label').innerHTML = `Replying to <b>${userName}</b> <span onclick="cancelReply()" style="float:right; cursor:pointer;">✕</span>`;
+        document.getElementById('user-input').focus();
     }
 
     function cancelReply() {
-        activeParentId = "";
-        document.getElementById('reply-to-text').style.display = "none";
-        document.getElementById('cancel-btn').style.display = "none";
-    }
-
-    async function sendMsg() {
-        const u = document.getElementById('user-name').value;
-        const t = document.getElementById('user-msg').value;
-        if(!u || !t || !currentForum) return alert("Missing name, message, or forum selection");
-
-        const payload = {
-            name: u,
-            message: t,
-            forum: currentForum,
-            parentId: activeParentId
-        };
-
-        await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
-        document.getElementById('user-msg').value = "";
-        cancelReply();
-        loadData();
+        activeParentId = null;
+        document.getElementById('reply-to-label').style.display = 'none';
     }
 
     function showHome() {
-        // Simple placeholder for your Phase 4 "Memory" feature
+        currentTopic = "home";
         const myName = document.getElementById('user-name').value;
-        if(!myName) return alert("Enter your name first to see your conversations");
-        document.getElementById('view-title').innerText = "My Conversations";
-        document.getElementById('content').innerHTML = "<p>Filtering threads for: " + myName + "</p>";
+        document.getElementById('topic-title').innerText = "Kaʻu mau Kūkākūkā";
+        document.getElementById('home-view').style.display = 'block';
+        document.getElementById('topic-view').style.display = 'none';
+        const personalFeed = document.getElementById('personal-feed');
+        personalFeed.innerHTML = "";
+
+        let threadsFound = [];
+        Object.keys(forumData).forEach(forumId => {
+            forumData[forumId].forEach(msg => {
+                if (msg.user === myName || (msg.parentId && threadsFound.includes(msg.parentId))) {
+                    renderMessage(msg, personalFeed, msg.parentId);
+                    if (!threadsFound.includes(msg.postId)) threadsFound.push(msg.postId);
+                }
+            });
+        });
+        if (personalFeed.innerHTML === "") personalFeed.innerHTML = "<div class='comment'>No conversations yet.</div>";
     }
 
-    loadData();
-    setInterval(loadData, 15000);
-</script>
+    async function postMessage() {
+        const name = document.getElementById('user-name').value;
+        const input = document.getElementById('user-input');
+        const forum = document.getElementById('forum-picker').value;
+        if (!name || !input.value.trim()) return;
 
+        localStorage.setItem('user_name', name);
+        const payload = { name, message: input.value, forum, parentId: activeParentId };
+
+        try {
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+            input.value = "";
+            cancelReply();
+            syncWithSheet(); // Refresh to show the new threaded message
+        } catch (e) { console.error("Post failed", e); }
+    }
+
+    function checkLocalGate() {
+        const val = document.getElementById('gate-answer').value.toLowerCase();
+        if (val.includes("friendly") || val.includes("isle")) {
+            localStorage.setItem('gate_pass', 'true');
+            document.getElementById('local-gate').style.display = 'none';
+        } else { document.getElementById('gate-error').style.display = 'block'; }
+    }
+
+    document.addEventListener('DOMContentLoaded', syncWithSheet);
+</script>
 </body>
 </html>
