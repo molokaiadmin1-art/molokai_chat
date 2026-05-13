@@ -1,17 +1,16 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community Hub - Threaded Edition</title>
+    <title>Community Hub - Tab Dynamic Edition</title>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --admin-green: #27ae60; --sidebar-dark: #2c3e50; --aqi-good: #2ecc71; }
         body { font-family: system-ui, sans-serif; background: #f0f2f5; display: flex; margin: 0; height: 100vh; overflow: hidden; }
         
-        /* Local Gate Styles */
+        /* Gate Styles */
         #local-gate { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--sidebar-dark); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; text-align: center; padding: 20px; box-sizing: border-box; }
         .gate-box { background: #34495e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-width: 450px; width: 100%; }
         .gate-input { padding: 15px; border-radius: 25px; border: none; width: 85%; margin: 20px 0; font-size: 1.1rem; text-align: center; outline: none; }
@@ -19,7 +18,10 @@
         
         /* Sidebar & Navigation */
         .sidebar { width: 280px; background: var(--sidebar-dark); color: white; padding: 20px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; overflow-y: auto; transition: transform 0.3s ease; z-index: 1000; }
-        .nav-btn { background: none; border: none; color: #bdc3c7; text-align: left; padding: 12px; cursor: pointer; border-radius: 6px; width: 100%; }
+        .nav-btn { 
+            background: none; border: none; color: #bdc3c7; text-align: left; padding: 12px; cursor: pointer; border-radius: 6px; width: 100%; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* Handle long tab names */
+        }
         .nav-btn.active { background: var(--admin-green); color: white; }
         
         #mobile-menu-btn { display: none; position: fixed; top: 10px; left: 10px; z-index: 1001; background: var(--admin-green); color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; border: none; }
@@ -97,7 +99,7 @@
 
 <script>
     const WEB_APP_URL = (typeof CONFIG !== 'undefined') ? CONFIG.SHEET_URL : "";
-    let forumData = {}; // Now stores objects: { id, user, text, parentId, postId }
+    let forumData = {}; 
     let currentTopic = "home";
     let activeParentId = null;
 
@@ -113,23 +115,32 @@
             const response = await fetch(WEB_APP_URL);
             const data = await response.json();
             
-            // Handle Sidebar Forum List
-            if (data.settings && data.settings.forum_list) {
-                const forums = data.settings.forum_list.split(',');
+            // DYNAMIC FORUM MENU: Uses Tab Names directly
+            if (data.messages) {
                 const navList = document.getElementById('nav-list');
                 const picker = document.getElementById('forum-picker');
-                navList.innerHTML = ''; picker.innerHTML = '';
-                forums.forEach(f => {
-                    const name = f.trim();
-                    const id = name.toLowerCase().replace(/\s+/g, '_');
-                    navList.innerHTML += `<button class="nav-btn" onclick="loadTopic('${id}', '${name}')">${name}</button>`;
-                    picker.innerHTML += `<option value="${id}">${name}</option>`;
+                navList.innerHTML = ''; 
+                picker.innerHTML = '';
+                
+                Object.keys(data.messages).forEach(forumName => {
+                    // Update Sidebar
+                    const btn = document.createElement('button');
+                    btn.className = 'nav-btn';
+                    btn.innerText = forumName;
+                    btn.onclick = () => loadTopic(forumName, forumName);
+                    navList.appendChild(btn);
+
+                    // Update Dropdown Picker
+                    const opt = document.createElement('option');
+                    opt.value = forumName;
+                    opt.innerText = forumName;
+                    picker.appendChild(opt);
                 });
             }
 
             forumData = data.messages || {};
             if (currentTopic === "home") showHome();
-            else loadTopic(currentTopic, document.getElementById('topic-title').innerText);
+            else loadTopic(currentTopic, currentTopic);
 
             if (data.sensors) {
                 const grid = document.getElementById('sensor-display');
@@ -146,18 +157,23 @@
         document.getElementById('topic-title').innerText = displayName;
         document.getElementById('home-view').style.display = 'none';
         document.getElementById('topic-view').style.display = 'block';
+        
+        // Update picker to match current forum
+        document.getElementById('forum-picker').value = id;
+
         const feed = document.getElementById('topic-feed');
         feed.innerHTML = "";
 
         const messages = forumData[id] || [];
-        // Sort: Parents first, then their replies
-        const parents = messages.filter(m => !m.parentId);
+        const parents = messages.filter(m => !m.parentId || m.parentId === "");
+        
         parents.forEach(p => {
             renderMessage(p, feed, false);
             const replies = messages.filter(r => r.parentId === p.postId);
             replies.forEach(r => renderMessage(r, feed, true));
         });
-        if (messages.length === 0) feed.innerHTML = "<div class='comment'>No messages yet.</div>";
+
+        if (messages.length === 0) feed.innerHTML = "<div class='comment'>No messages yet in " + displayName + ".</div>";
         if (window.innerWidth <= 768) toggleSidebar();
     }
 
@@ -201,7 +217,7 @@
                 }
             });
         });
-        if (personalFeed.innerHTML === "") personalFeed.innerHTML = "<div class='comment'>No conversations yet.</div>";
+        if (personalFeed.innerHTML === "") personalFeed.innerHTML = "<div class='comment'>No personal conversations yet.</div>";
     }
 
     async function postMessage() {
@@ -217,7 +233,7 @@
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
             input.value = "";
             cancelReply();
-            syncWithSheet(); // Refresh to show the new threaded message
+            syncWithSheet(); 
         } catch (e) { console.error("Post failed", e); }
     }
 
