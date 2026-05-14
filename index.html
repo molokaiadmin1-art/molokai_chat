@@ -10,50 +10,39 @@
         :root { --admin-green: #27ae60; --sidebar-dark: #2c3e50; --aqi-good: #2ecc71; }
         body { font-family: system-ui, sans-serif; background: #f0f2f5; display: flex; margin: 0; height: 100vh; overflow: hidden; }
         
-        /* Gate Styles */
         #local-gate { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--sidebar-dark); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; text-align: center; padding: 20px; box-sizing: border-box; }
         .gate-box { background: #34495e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-width: 450px; width: 100%; }
         .gate-input { padding: 15px; border-radius: 25px; border: none; width: 85%; margin: 20px 0; font-size: 1.1rem; text-align: center; outline: none; }
         .gate-btn { background: var(--admin-green); color: white; padding: 12px 35px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; }
         
-        /* Sidebar & Navigation */
-        .sidebar { width: 280px; background: var(--sidebar-dark); color: white; padding: 20px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; overflow-y: auto; transition: transform 0.3s ease; z-index: 1000; }
-        .nav-btn { 
-            background: none; border: none; color: #bdc3c7; text-align: left; padding: 12px; cursor: pointer; border-radius: 6px; width: 100%; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-        }
+        .sidebar { width: 280px; background: var(--sidebar-dark); color: white; padding: 20px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; overflow-y: auto; z-index: 1000; }
+        .nav-btn { background: none; border: none; color: #bdc3c7; text-align: left; padding: 12px; cursor: pointer; border-radius: 6px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .nav-btn.active { background: var(--admin-green); color: white; }
         
         #mobile-menu-btn { display: none; position: fixed; top: 10px; left: 10px; z-index: 1001; background: var(--admin-green); color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; border: none; }
 
-        /* AQI Widget */
         .aqi-widget { background: #34495e; padding: 12px; border-radius: 8px; margin-top: auto; border-left: 4px solid var(--aqi-good); }
         .sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }
         .aqi-value { font-size: 1.1rem; font-weight: bold; color: var(--aqi-good); }
         
-        /* Main Chat Area */
         .main-content { flex-grow: 1; display: flex; flex-direction: column; background: white; height: 100vh; position: relative; min-width: 0; }
         .banner { padding: 15px 25px; border-bottom: 3px solid var(--admin-green); background: #fff; flex-shrink: 0; display: flex; align-items: center; }
         .history { flex-grow: 1; padding: 15px; overflow-y: auto; background: #fafafa; }
         
-        /* Threaded Comment Styles */
-        .comment { background: white; border: 1px solid #ddd; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); position: relative; }
+        .comment { background: white; border: 1px solid #ddd; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .reply-comment { margin-left: 35px; border-left: 3px solid var(--admin-green); background: #f9f9f9; }
         .reply-btn { font-size: 0.75rem; color: var(--admin-green); background: none; border: none; cursor: pointer; padding: 5px 0; font-weight: bold; }
         
-        /* Input Area */
         .reply-area { padding: 15px; border-top: 1px solid #ddd; background: white; }
-        .reply-indicator { background: #e8f5e9; padding: 5px 15px; font-size: 0.8rem; color: #2e7d32; display: none; border-radius: 10px 10px 0 0; border: 1px solid #c8e6c9; border-bottom: none; }
         .name-bar { background: #fdf9e1; padding: 8px 15px; border-radius: 20px; margin-bottom: 10px; border: 1px solid #f1c40f; }
         .name-input { border: none; background: transparent; font-weight: bold; outline: none; width: 100%; }
-        .text-input { width: 100%; padding: 12px; border-radius: 15px; border: 1px solid #ccc; font-family: inherit; resize: none; box-sizing: border-box; }
-        .post-btn { background: var(--admin-green); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; margin-top: 10px; float: right; }
+        .text-input { width: 100%; padding: 12px; border-radius: 15px; border: 1px solid #ccc; resize: none; box-sizing: border-box; }
+        .post-btn { background: var(--admin-green); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; float: right; margin-top: 10px; }
 
         @media (max-width: 768px) {
-            .sidebar { position: fixed; left: 0; top: 0; height: 100%; transform: translateX(-100%); width: 250px; }
+            .sidebar { position: fixed; left: 0; top: 0; height: 100%; transform: translateX(-100%); width: 250px; transition: transform 0.3s ease; }
             .sidebar.active { transform: translateX(0); }
             #mobile-menu-btn { display: block; }
-            .banner h1 { margin-left: 50px !important; }
         }
     </style>
 </head>
@@ -85,14 +74,14 @@
 <div class="main-content">
     <div class="banner"><h1 id="topic-title" style="font-size: 1.1rem; margin:0;">Kaʻu mau Kūkākūkā</h1></div>
     <div class="history" id="chat-history">
-        <div id="home-view"><div id="personal-feed"><div class="comment">Loading conversations...</div></div></div>
+        <div id="home-view"><div id="personal-feed"><div class="comment">Loading...</div></div></div>
         <div id="topic-view" style="display:none;"><div id="topic-feed"></div></div>
     </div>
     <div class="reply-area">
-        <div id="reply-to-label" class="reply-indicator">Replying to... <span onclick="cancelReply()" style="float:right; cursor:pointer;">✕</span></div>
+        <div id="reply-to-label" style="display:none; color: var(--admin-green); font-size: 0.8rem; margin-bottom: 5px;"></div>
         <div class="name-bar"><input type="text" id="user-name" class="name-input" placeholder="Your name..."></div>
         <select id="forum-picker" style="width:100%; margin-bottom:8px; padding:8px; border-radius:8px; border:1px solid #ccc;"></select>
-        <textarea id="user-input" class="text-input" rows="1" placeholder="Kākau i memo..." oninput="autoResize(this)"></textarea>
+        <textarea id="user-input" class="text-input" rows="1" placeholder="Kākau i memo..."></textarea>
         <button class="post-btn" onclick="postMessage()">➤</button>
     </div>
 </div>
@@ -104,7 +93,6 @@
     let activeParentId = null;
 
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
-    function autoResize(textarea) { textarea.style.height = 'auto'; textarea.style.height = textarea.scrollHeight + 'px'; }
 
     async function syncWithSheet() {
         if (localStorage.getItem('gate_pass') === 'true') document.getElementById('local-gate').style.display = 'none';
@@ -121,16 +109,18 @@
                 navList.innerHTML = ''; 
                 picker.innerHTML = '';
                 
-                Object.keys(data.messages).forEach(forumName => {
+                Object.keys(data.messages).forEach(name => {
+                    // Create Sidebar Button using Tab Name ONLY
                     const btn = document.createElement('button');
                     btn.className = 'nav-btn';
-                    btn.innerText = forumName; 
-                    btn.onclick = () => loadTopic(forumName, forumName);
+                    btn.innerText = name; 
+                    btn.onclick = () => loadTopic(name, name);
                     navList.appendChild(btn);
 
+                    // Dropdown Option
                     const opt = document.createElement('option');
-                    opt.value = forumName;
-                    opt.innerText = forumName;
+                    opt.value = name;
+                    opt.innerText = name;
                     picker.appendChild(opt);
                 });
             }
@@ -146,7 +136,7 @@
                     grid.innerHTML += `<div><div style="font-size: 0.6rem;">${s.name}</div><div class="aqi-value">${s.value}</div></div>`;
                 });
             }
-        } catch (e) { console.error("Sync Error:", e); }
+        } catch (e) { console.error("Sync Error", e); }
     }
 
     function loadTopic(id, displayName) {
@@ -158,61 +148,36 @@
 
         const feed = document.getElementById('topic-feed');
         feed.innerHTML = "";
-
         const messages = forumData[id] || [];
-        const parents = messages.filter(m => !m.parentId || m.parentId === "");
         
-        parents.forEach(p => {
+        messages.filter(m => !m.parentId).forEach(p => {
             renderMessage(p, feed, false);
-            const replies = messages.filter(r => r.parentId === p.postId);
-            replies.forEach(r => renderMessage(r, feed, true));
+            messages.filter(r => r.parentId === p.postId).forEach(r => renderMessage(r, feed, true));
         });
 
-        if (messages.length === 0) feed.innerHTML = "<div class='comment'>No messages yet in " + displayName + ".</div>";
-        if (window.innerWidth <= 768) toggleSidebar();
+        if (messages.length === 0) feed.innerHTML = "<div class='comment'>No messages yet.</div>";
     }
 
     function renderMessage(msg, container, isReply) {
         const div = document.createElement('div');
         div.className = `comment ${isReply ? 'reply-comment' : ''}`;
-        div.innerHTML = `
-            <b>${msg.user}:</b> ${msg.text}
-            <br><button class="reply-btn" onclick="setReply('${msg.postId}', '${msg.user}')"><i class="fas fa-reply"></i> Reply</button>
-        `;
+        div.innerHTML = `<b>${msg.user}:</b> ${msg.text}<br><button class="reply-btn" onclick="setReply('${msg.postId}', '${msg.user}')">Reply</button>`;
         container.appendChild(div);
     }
 
-    function setReply(postId, userName) {
-        activeParentId = postId;
-        document.getElementById('reply-to-label').style.display = 'block';
-        document.getElementById('reply-to-label').innerHTML = `Replying to <b>${userName}</b> <span onclick="cancelReply()" style="float:right; cursor:pointer;">✕</span>`;
-        document.getElementById('user-input').focus();
-    }
-
-    function cancelReply() {
-        activeParentId = null;
-        document.getElementById('reply-to-label').style.display = 'none';
+    function setReply(id, user) {
+        activeParentId = id;
+        const label = document.getElementById('reply-to-label');
+        label.style.display = 'block';
+        label.innerText = "Replying to " + user;
     }
 
     function showHome() {
         currentTopic = "home";
-        const myName = document.getElementById('user-name').value;
         document.getElementById('topic-title').innerText = "Kaʻu mau Kūkākūkā";
         document.getElementById('home-view').style.display = 'block';
         document.getElementById('topic-view').style.display = 'none';
-        const personalFeed = document.getElementById('personal-feed');
-        personalFeed.innerHTML = "";
-
-        let threadsFound = [];
-        Object.keys(forumData).forEach(forumId => {
-            forumData[forumId].forEach(msg => {
-                if (msg.user === myName || (msg.parentId && threadsFound.includes(msg.parentId))) {
-                    renderMessage(msg, personalFeed, msg.parentId);
-                    if (!threadsFound.includes(msg.postId)) threadsFound.push(msg.postId);
-                }
-            });
-        });
-        if (personalFeed.innerHTML === "") personalFeed.innerHTML = "<div class='comment'>No personal conversations yet.</div>";
+        document.getElementById('personal-feed').innerHTML = "<div class='comment'>Your personal feed appears here.</div>";
     }
 
     async function postMessage() {
@@ -224,12 +189,11 @@
         localStorage.setItem('user_name', name);
         const payload = { name, message: input.value, forum, parentId: activeParentId };
 
-        try {
-            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
-            input.value = "";
-            cancelReply();
-            syncWithSheet(); 
-        } catch (e) { console.error("Post failed", e); }
+        await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+        input.value = "";
+        activeParentId = null;
+        document.getElementById('reply-to-label').style.display = 'none';
+        syncWithSheet();
     }
 
     function checkLocalGate() {
