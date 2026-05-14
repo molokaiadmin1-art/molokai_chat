@@ -20,7 +20,7 @@
         .sidebar { width: 280px; background: var(--sidebar-dark); color: white; padding: 20px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; overflow-y: auto; transition: transform 0.3s ease; z-index: 1000; }
         .nav-btn { 
             background: none; border: none; color: #bdc3c7; text-align: left; padding: 12px; cursor: pointer; border-radius: 6px; width: 100%; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* Handle long tab names */
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
         }
         .nav-btn.active { background: var(--admin-green); color: white; }
         
@@ -115,7 +115,6 @@
             const response = await fetch(WEB_APP_URL);
             const data = await response.json();
             
-            // DYNAMIC FORUM MENU: Uses Tab Names directly
             if (data.messages) {
                 const navList = document.getElementById('nav-list');
                 const picker = document.getElementById('forum-picker');
@@ -123,14 +122,12 @@
                 picker.innerHTML = '';
                 
                 Object.keys(data.messages).forEach(forumName => {
-                    // Update Sidebar
                     const btn = document.createElement('button');
                     btn.className = 'nav-btn';
-                    btn.innerText = forumName;
+                    btn.innerText = forumName; 
                     btn.onclick = () => loadTopic(forumName, forumName);
                     navList.appendChild(btn);
 
-                    // Update Dropdown Picker
                     const opt = document.createElement('option');
                     opt.value = forumName;
                     opt.innerText = forumName;
@@ -157,8 +154,6 @@
         document.getElementById('topic-title').innerText = displayName;
         document.getElementById('home-view').style.display = 'none';
         document.getElementById('topic-view').style.display = 'block';
-        
-        // Update picker to match current forum
         document.getElementById('forum-picker').value = id;
 
         const feed = document.getElementById('topic-feed');
